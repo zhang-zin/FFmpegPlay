@@ -1,14 +1,26 @@
 package com.zj26.ffmpegplay
 
-import androidx.appcompat.app.AppCompatActivity
+import android.Manifest
 import android.os.Bundle
 import android.view.View
+import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import androidx.core.content.PermissionChecker
 import com.zj26.ffmpegplay.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var playerManage: PlayerManage
+
+    //ActivityResultContracts.RequestMultiplePermissions() 请求多项权限
+    private val requestPermissionLauncher =
+        registerForActivityResult(RequestPermission()) { isGranted: Boolean ->
+            if (isGranted) {
+                playerManage.open("")
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -20,6 +32,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun open(view: View) {
-        playerManage.open("")
+        val checkSelfPermission =
+            ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+        //shouldShowRequestPermissionRationale(Manifest.permission.READ_EXTERNAL_STORAGE)
+        if (checkSelfPermission == PermissionChecker.PERMISSION_GRANTED) {
+            playerManage.open("")
+        } else {
+            requestPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
     }
 }

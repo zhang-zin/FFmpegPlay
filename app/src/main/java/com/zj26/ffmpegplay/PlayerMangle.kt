@@ -9,7 +9,7 @@ import androidx.lifecycle.LifecycleOwner
 class PlayerManage(private val surfaceView: SurfaceView) : SurfaceHolder.Callback2,
     DefaultLifecycleObserver {
 
-    private external fun nativeOpen(path: String, surface: Surface): String
+    private external fun nativeOpen(path: String, surface: Surface): Int
     private var surface: Surface? = null
 
     companion object {
