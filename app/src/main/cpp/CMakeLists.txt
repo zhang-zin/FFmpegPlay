@@ -27,4 +27,5 @@ target_link_libraries( # Specifies the target library.
         swresample
         swscale
         android
+        OpenSLES
         ${log-lib})

@@ -98,6 +98,9 @@ void NativeFFmpeg::start() {
     if (videoChannel) {
         videoChannel->play();
     }
+    if (audioChannel) {
+        audioChannel->play();
+    }
     pthread_create(&pid_play, nullptr, startFFmpeg_, this);
 }
 

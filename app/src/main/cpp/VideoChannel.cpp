@@ -62,9 +62,9 @@ void VideoChannel::decodePacket() {
         } else if (ret < 0) {
             break;
         }
-        if (frame_queue.size() > 100 && isPlaying) {
+        while (frame_queue.size() > 100 && isPlaying) {
             av_usleep(1000 * 10);
-            continue;
+            //continue;
         }
     }
     releaseAVPacket(packet);
@@ -92,7 +92,7 @@ void VideoChannel::synchronizeFrame() {
         sws_scale(swsContext, frame->data, frame->linesize, 0, frame->height, dst_data,
                   dst_lineSize);
         renderFrame(dst_data[0], dst_lineSize[0], avCodecContext->width, avCodecContext->height);
-        av_usleep(16 * 1000000);
+        av_usleep(16 * 1000);
         releaseAVFrame(frame);
     }
     av_free(&dst_data[0]);
