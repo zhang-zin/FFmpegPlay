@@ -14,8 +14,8 @@ extern "C" {
 
 class BaseChannel {
 public:
-    BaseChannel(int id, JavaCallHelper *pHelper, AVCodecContext *pContext) :
-            channelId(id), javaCallHelper(pHelper), avCodecContext(pContext) {
+    BaseChannel(int id, JavaCallHelper *pHelper, AVCodecContext *pContext, AVRational time_base) :
+            channelId(id), javaCallHelper(pHelper), avCodecContext(pContext), time_base(time_base) {
         pkt_queue = SafeQueue<AVPacket *>();
         frame_queue = SafeQueue<AVFrame *>();
         pkt_queue.setReleaseHandle(releaseAVPacket);
@@ -56,6 +56,9 @@ public:
     JavaCallHelper *javaCallHelper;
     SafeQueue<AVPacket *> pkt_queue;
     SafeQueue<AVFrame *> frame_queue;
+
+    AVRational time_base; // 时间基
+    double clock = 0;
 
 };
 

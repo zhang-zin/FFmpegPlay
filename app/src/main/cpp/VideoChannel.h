@@ -13,13 +13,14 @@ extern "C" {
 }
 
 #include "BaseChannel.h"
+#include "AudioChannel.h"
 
 typedef void (*RenderFrame)(uint8_t *, int, int, int);
 
 class VideoChannel : public BaseChannel {
 
 public:
-    VideoChannel(int id, JavaCallHelper *pHelper, AVCodecContext *pContext);
+    VideoChannel(int id, JavaCallHelper *pHelper, AVCodecContext *pContext, AVRational time_base);
 
     virtual void play();
 
@@ -31,10 +32,16 @@ public:
 
     void setRenderCallback(RenderFrame renderFrame);
 
+    void setFps(int fps_);
+
 private:
     pthread_t pid_video_play = 0;
     pthread_t pid_synchronize = 0;
     RenderFrame renderFrame = nullptr;
+    int fps = 0;
+
+public:
+    AudioChannel *audioChannel;
 };
 
 

@@ -24,8 +24,9 @@ void *audioPlay(void *args) {
     return nullptr;
 }
 
-AudioChannel::AudioChannel(int id, JavaCallHelper *pHelper, AVCodecContext *pContext) :
-        BaseChannel(id, pHelper, pContext) {
+AudioChannel::AudioChannel(int id, JavaCallHelper *pHelper, AVCodecContext *pContext,
+                           AVRational time_base) :
+        BaseChannel(id, pHelper, pContext, time_base) {
     out_channels = av_get_channel_layout_nb_channels(AV_CH_LAYOUT_STEREO);
     out_sample_size = av_get_bytes_per_sample(AV_SAMPLE_FMT_S16);
     out_sample_rate = 44100;
@@ -96,7 +97,8 @@ void AudioChannel::initOpenSL() {
     if (SL_RESULT_SUCCESS != result) {
         return;
     }
-    SLDataLocator_AndroidSimpleBufferQueue android_queue = {SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, 2};
+    SLDataLocator_AndroidSimpleBufferQueue android_queue = {SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE,
+                                                            2};
     SLDataFormat_PCM pcm = {SL_DATAFORMAT_PCM, // 播放pcm格式的数据
                             2,     // 2个声道
                             SL_SAMPLINGRATE_44_1, //采样率 44100hz
@@ -179,6 +181,7 @@ int AudioChannel::getPcm() {
                              (const uint8_t **) frame->data, frame->nb_samples);
         //转换后多少数据  buffer size  44110*2*2
         data_size = nb * out_channels * out_sample_size;
+        clock = frame->pts * av_q2d(time_base);
         break;
     }
     releaseAVFrame(frame);

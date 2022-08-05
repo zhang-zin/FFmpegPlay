@@ -19,7 +19,7 @@ class MainActivity : AppCompatActivity(), PlayerManager.OnErrorListener,
     private lateinit var binding: ActivityMainBinding
     private lateinit var playerManager: PlayerManager
     private val path: String =
-        File(Environment.getExternalStorageDirectory(), "input.mp4").apply {
+        File(Environment.getExternalStorageDirectory(), "input2.mp4").apply {
             setExecutable(true)
         }.absolutePath
 

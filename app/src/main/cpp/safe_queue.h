@@ -21,7 +21,7 @@ template<typename T>
 class SafeQueue {
     typedef void (*ReleaseHandle)(T &);
 
-    typedef void (*SyncHandle)(queue <T> &);
+    typedef void (*SyncHandle)(queue<T> &);
 
 public:
     SafeQueue() {
@@ -168,7 +168,7 @@ private:
     pthread_mutex_t mutex;
 #endif
 
-    queue <T> q;
+    queue<T> q;
     int work;
     ReleaseHandle releaseHandle;
     SyncHandle syncHandle;

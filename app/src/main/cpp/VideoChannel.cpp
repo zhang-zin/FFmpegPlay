@@ -16,9 +16,32 @@ void *decode(void *args) {
     return nullptr;
 }
 
-VideoChannel::VideoChannel(int id, JavaCallHelper *pHelper, AVCodecContext *pContext) :
-        BaseChannel(id, pHelper, pContext) {
+void dropPacket(queue<AVPacket *> &q) {
+    while (!q.empty()) {
+        LOGE("丢弃视频......");
+        AVPacket *pkt = q.front();
+        if (pkt->flags != AV_PKT_FLAG_KEY) {
+            q.pop();
+            BaseChannel::releaseAVPacket(pkt);
+        } else {
+            break;
+        }
+    }
+}
 
+void dropFrame(queue<AVFrame *> &q) {
+    if (!q.empty()) {
+        AVFrame *frame = q.front();
+        q.pop();
+        BaseChannel::releaseAVFrame(frame);
+    }
+}
+
+VideoChannel::VideoChannel(int id, JavaCallHelper *pHelper, AVCodecContext *pContext,
+                           AVRational time_base) :
+        BaseChannel(id, pHelper, pContext, time_base) {
+    frame_queue.setReleaseHandle(releaseAVFrame);
+    frame_queue.setSyncHandle(dropFrame);
 }
 
 void VideoChannel::play() {
@@ -73,8 +96,10 @@ void VideoChannel::decodePacket() {
 void VideoChannel::synchronizeFrame() {
     // 初始化转换器上下文
     SwsContext *swsContext = sws_getContext(avCodecContext->width, avCodecContext->height,
-                                            avCodecContext->pix_fmt, avCodecContext->width,
-                                            avCodecContext->height, AV_PIX_FMT_RGBA, SWS_BILINEAR,
+                                            avCodecContext->pix_fmt,
+                                            avCodecContext->width, avCodecContext->height,
+                                            AV_PIX_FMT_RGBA,
+                                            SWS_BILINEAR,
                                             nullptr, nullptr, nullptr);
     uint8_t *dst_data[4];
     int dst_lineSize[4];
@@ -92,7 +117,29 @@ void VideoChannel::synchronizeFrame() {
         sws_scale(swsContext, frame->data, frame->linesize, 0, frame->height, dst_data,
                   dst_lineSize);
         renderFrame(dst_data[0], dst_lineSize[0], avCodecContext->width, avCodecContext->height);
-        av_usleep(16 * 1000);
+        clock = frame->pts * av_q2d(time_base);
+        double audioClock = audioChannel->clock;
+        double diff = clock - audioClock;
+        double frame_delays = 1.0 / fps;
+        // 算入解码时间
+        double extra_delay = frame->repeat_pict / (2 * fps);
+        double delay = extra_delay + frame_delays;
+        if (diff > 0) {
+            // 视频超前
+            if (diff > 1) {
+                // 超太多了
+                av_usleep(delay * 2 * 1000000);
+            } else {
+                av_usleep((delay + diff) * 1000000);
+            }
+        } else {
+            // 音频超前
+            if (abs(diff) > 0.05) {
+                // 丢帧
+                releaseAVFrame(frame);
+                frame_queue.sync();
+            }
+        }
         releaseAVFrame(frame);
     }
     av_free(&dst_data[0]);
@@ -103,4 +150,8 @@ void VideoChannel::synchronizeFrame() {
 
 void VideoChannel::setRenderCallback(RenderFrame renderFrame_) {
     this->renderFrame = renderFrame_;
+}
+
+void VideoChannel::setFps(int fps_) {
+    this->fps = fps_;
 }

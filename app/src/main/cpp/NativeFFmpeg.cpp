@@ -76,13 +76,17 @@ void NativeFFmpeg::prepareFFmpeg() {
             javaCallHelper->onError(THREAD_CHILD, FFMPEG_OPEN_DECODER_FAIL);
             return;
         }
+        AVStream *stream = avFormatContext->streams[i];
         if (codecParameters->codec_type == AVMEDIA_TYPE_AUDIO) {
             //音频流
-            audioChannel = new AudioChannel(i, javaCallHelper, avCodecContext);
+            audioChannel = new AudioChannel(i, javaCallHelper, avCodecContext, stream->time_base);
         } else if (codecParameters->codec_type == AVMEDIA_TYPE_VIDEO) {
             //视频流
-            videoChannel = new VideoChannel(i, javaCallHelper, avCodecContext);
+            AVRational frame_rate= stream->avg_frame_rate;
+            int fps = av_q2d(frame_rate);
+            videoChannel = new VideoChannel(i, javaCallHelper, avCodecContext, stream->time_base);
             videoChannel->setRenderCallback(renderFrame);
+            videoChannel->setFps(fps);
         }
     }
     //音视频都没有
@@ -90,6 +94,7 @@ void NativeFFmpeg::prepareFFmpeg() {
         javaCallHelper->onError(THREAD_CHILD, FFMPEG_NOMEDIA);
         return;
     }
+    videoChannel->audioChannel = audioChannel;
     javaCallHelper->onPrepare(THREAD_CHILD);
 }
 
