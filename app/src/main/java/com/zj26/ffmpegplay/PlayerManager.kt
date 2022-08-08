@@ -19,6 +19,9 @@ class PlayerManager(private val surfaceView: SurfaceView) : SurfaceHolder.Callba
     private external fun native_prepare(dataSource: String)
     private external fun native_set_surface(surface: Surface)
     private external fun native_start()
+    private external fun native_getDuration(): Int
+    private external fun native_seek(progress: Int)
+    private external fun native_stop()
 
     private var dataSource: String? = null
     var onPrepareListener: OnPrepareListener? = null
@@ -58,6 +61,18 @@ class PlayerManager(private val surfaceView: SurfaceView) : SurfaceHolder.Callba
 
     fun start() {
         native_start()
+    }
+
+    fun getDuration(): Int {
+        return native_getDuration()
+    }
+
+    fun seek(progress: Int) {
+        native_seek(progress)
+    }
+
+    fun stop() {
+        native_stop()
     }
 
     fun onError(code: Int) {

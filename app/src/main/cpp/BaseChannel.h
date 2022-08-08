@@ -32,6 +32,21 @@ public:
         frame_queue.clear();
     }
 
+    void clear(){
+        pkt_queue.clear();
+        frame_queue.clear();
+    }
+
+    void startWork(){
+        pkt_queue.setWork(1);
+        frame_queue.setWork(1);
+    }
+
+    void stopWork(){
+        pkt_queue.setWork(0);
+        frame_queue.setWork(0);
+    }
+
     virtual void play() = 0;
 
     virtual void stop() = 0;

@@ -31,18 +31,32 @@ public:
     void start();
 
     void startFFmpeg();
+
     void setRenderCallback(RenderFrame renderFrame_);
+
+    int getDuration();
+
+    void seek(jint i);
+
+    void stop();
+
+    void stopFFmpeg();
 
 private:
     char *url;
-    bool isPlaying;
+    bool isPlaying = false;
     JavaCallHelper *javaCallHelper;
-    pthread_t pid_prepare;
-    pthread_t pid_play;
     AVFormatContext *avFormatContext;
+    RenderFrame renderFrame = nullptr;
+    int duration;
     AudioChannel *audioChannel;
     VideoChannel *videoChannel;
-    RenderFrame renderFrame = nullptr;
+
+public:
+    pthread_t pid_prepare;
+    pthread_t pid_play;
+    pthread_t pid_stop;
+
 };
 
 

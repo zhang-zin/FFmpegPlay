@@ -35,6 +35,11 @@ AudioChannel::AudioChannel(int id, JavaCallHelper *pHelper, AVCodecContext *pCon
     buffer = (uint8_t *) malloc(out_sample_rate * out_sample_size * out_channels);
 }
 
+AudioChannel::~AudioChannel() {
+    free(buffer);
+    buffer = nullptr;
+}
+
 void AudioChannel::play() {
     swrContext = swr_alloc_set_opts(nullptr,
                                     AV_CH_LAYOUT_STEREO,
@@ -55,7 +60,7 @@ void AudioChannel::play() {
 }
 
 void AudioChannel::stop() {
-
+    isPlaying = false;
 }
 
 void AudioChannel::initOpenSL() {
@@ -183,6 +188,9 @@ int AudioChannel::getPcm() {
         data_size = nb * out_channels * out_sample_size;
         clock = frame->pts * av_q2d(time_base);
         break;
+    }
+    if (javaCallHelper) {
+        javaCallHelper->onProgress(THREAD_CHILD, clock);
     }
     releaseAVFrame(frame);
     return data_size;

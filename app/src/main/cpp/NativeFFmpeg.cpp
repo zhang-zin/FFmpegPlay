@@ -4,6 +4,12 @@
 
 #include "NativeFFmpeg.h"
 
+void *stopFFmpeg_(void *args) {
+    auto *nativeFFmpeg = static_cast<NativeFFmpeg *>(args);
+    nativeFFmpeg->stopFFmpeg();
+    return nullptr;
+}
+
 void *startFFmpeg_(void *args) {
     auto *nativeFFmpeg = static_cast<NativeFFmpeg *>(args);
     nativeFFmpeg->startFFmpeg();
@@ -20,10 +26,12 @@ NativeFFmpeg::NativeFFmpeg(JavaCallHelper *javaCallHelper_, const char *dataSour
         : javaCallHelper(javaCallHelper_) {
     url = new char[strlen(dataSource) + 1];
     strcpy(url, dataSource);
+    duration = 0;
 }
 
 NativeFFmpeg::~NativeFFmpeg() {
-
+    javaCallHelper = nullptr;
+    DELETE(url)
 }
 
 void NativeFFmpeg::prepare() {
@@ -51,6 +59,8 @@ void NativeFFmpeg::prepareFFmpeg() {
     if (ret < 0) {
         javaCallHelper->onError(THREAD_CHILD, FFMPEG_CAN_NOT_FIND_STREAMS);
     }
+    duration = avFormatContext->duration / 1000000;
+    LOGE("duration: %d", duration);
     for (int i = 0; i < avFormatContext->nb_streams; ++i) {
         AVCodecParameters *codecParameters = avFormatContext->streams[i]->codecpar;
         AVCodec *codec = avcodec_find_decoder(codecParameters->codec_id);
@@ -82,7 +92,7 @@ void NativeFFmpeg::prepareFFmpeg() {
             audioChannel = new AudioChannel(i, javaCallHelper, avCodecContext, stream->time_base);
         } else if (codecParameters->codec_type == AVMEDIA_TYPE_VIDEO) {
             //视频流
-            AVRational frame_rate= stream->avg_frame_rate;
+            AVRational frame_rate = stream->avg_frame_rate;
             int fps = av_q2d(frame_rate);
             videoChannel = new VideoChannel(i, javaCallHelper, avCodecContext, stream->time_base);
             videoChannel->setRenderCallback(renderFrame);
@@ -150,10 +160,59 @@ void NativeFFmpeg::startFFmpeg() {
         }
     }
     isPlaying = false;
-    audioChannel->stop();
-    videoChannel->stop();
+    if (audioChannel) {
+        audioChannel->stop();
+    }
+    if (videoChannel) {
+        videoChannel->stop();
+    }
 }
 
 void NativeFFmpeg::setRenderCallback(RenderFrame renderFrame_) {
     this->renderFrame = renderFrame_;
+}
+
+int NativeFFmpeg::getDuration() {
+    return duration;
+}
+
+void NativeFFmpeg::seek(jint i) {
+    int64_t seek = i * 1000000;
+    av_seek_frame(avFormatContext, -1, seek, AVSEEK_FLAG_BACKWARD);
+    if (videoChannel) {
+        videoChannel->stopWork();
+        videoChannel->clear();
+        videoChannel->startWork();
+    }
+    if (audioChannel) {
+        audioChannel->stopWork();
+        audioChannel->clear();
+        audioChannel->startWork();
+    }
+}
+
+void NativeFFmpeg::stop() {
+    javaCallHelper = nullptr;
+    if (audioChannel) {
+        audioChannel->stop();
+        audioChannel->javaCallHelper = nullptr;
+    }
+    if (videoChannel) {
+        videoChannel->stop();
+        videoChannel->javaCallHelper = nullptr;
+    }
+    pthread_create(&pid_stop, nullptr, stopFFmpeg_, this);
+//    pthread_join(pid_prepare, nullptr);
+//    pthread_join(pid_play, nullptr);
+}
+
+void NativeFFmpeg::stopFFmpeg() {
+    isPlaying = false;
+    DELETE(audioChannel)
+    DELETE(videoChannel)
+    if (avFormatContext) {
+        avformat_close_input(&avFormatContext);
+        avformat_free_context(avFormatContext);
+        avFormatContext = nullptr;
+    }
 }

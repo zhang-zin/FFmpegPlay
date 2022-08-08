@@ -1,10 +1,13 @@
 package com.zj26.ffmpegplay
 
 import android.Manifest
+import android.opengl.Visibility
 import android.os.Bundle
 import android.os.Environment
+import android.util.Log
 import android.view.View
 import android.view.WindowManager
+import android.widget.SeekBar
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 import androidx.appcompat.app.AppCompatActivity
@@ -19,9 +22,12 @@ class MainActivity : AppCompatActivity(), PlayerManager.OnErrorListener,
     private lateinit var binding: ActivityMainBinding
     private lateinit var playerManager: PlayerManager
     private val path: String =
-        File(Environment.getExternalStorageDirectory(), "input2.mp4").apply {
+        File(Environment.getExternalStorageDirectory(), "input.mp4").apply {
             setExecutable(true)
         }.absolutePath
+
+    private var isTouch = false
+    private var isSeek = false
 
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -49,6 +55,21 @@ class MainActivity : AppCompatActivity(), PlayerManager.OnErrorListener,
             onProgressListener = this@MainActivity
         }
         lifecycle.addObserver(playerManager)
+        binding.seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                isTouch = true
+            }
+
+            override fun onStopTrackingTouch(seekBar: SeekBar) {
+                isTouch = false
+                isSeek = true
+                val progress = playerManager.getDuration() * seekBar.progress / 100f
+                playerManager.seek(progress.toInt())
+            }
+        })
     }
 
     fun open(view: View) {
@@ -72,11 +93,32 @@ class MainActivity : AppCompatActivity(), PlayerManager.OnErrorListener,
 
     override fun onPrepare() {
         playerManager.start()
+        runOnUiThread {
+            if (playerManager.getDuration() > 0) {
+                binding.seekBar.visibility = View.VISIBLE
+            }
+        }
     }
 
     override fun onError(code: Int) {
     }
 
     override fun onProgress(progress: Int) {
+        runOnUiThread {
+            if (!isTouch) {
+                val duration = playerManager.getDuration()
+                if (duration != 0) {
+                    if (isSeek){
+                        isSeek = false
+                        return@runOnUiThread
+                    }
+                    binding.seekBar.progress = progress * 100 / duration
+                }
+            }
+        }
+    }
+
+    fun stop(view: View) {
+        playerManager.stop()
     }
 }

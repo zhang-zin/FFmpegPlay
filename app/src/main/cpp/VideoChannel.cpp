@@ -44,6 +44,10 @@ VideoChannel::VideoChannel(int id, JavaCallHelper *pHelper, AVCodecContext *pCon
     frame_queue.setSyncHandle(dropFrame);
 }
 
+VideoChannel::~VideoChannel() {
+
+}
+
 void VideoChannel::play() {
     pkt_queue.setWork(1);
     frame_queue.setWork(1);
@@ -53,7 +57,7 @@ void VideoChannel::play() {
 }
 
 void VideoChannel::stop() {
-
+    isPlaying = false;
 }
 
 void VideoChannel::decodePacket() {

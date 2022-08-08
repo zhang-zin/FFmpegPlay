@@ -16,16 +16,28 @@
         android:id="@+id/seekBar"
         android:layout_width="match_parent"
         android:layout_height="20dp"
+        android:visibility="gone"
         app:layout_constraintTop_toBottomOf="@+id/surfaceView" />
 
     <Button
         android:id="@+id/open"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="打开"
         android:onClick="open"
+        android:text="打开"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/seekBar" />
+
+
+    <Button
+        android:id="@+id/stop"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="stop"
+        android:text="关闭"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/open" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

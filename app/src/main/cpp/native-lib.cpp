@@ -19,6 +19,7 @@ JavaVM *javaVm = nullptr;
 
 JavaCallHelper *javaCallHelper;
 NativeFFmpeg *nativeFFmpeg;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 //
 //extern "C"
@@ -134,6 +135,11 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
 }
 
 void renderFrame(uint8_t *data, int lineSize, int w, int h) {
+    pthread_mutex_lock(&mutex);
+    if (!window){
+        pthread_mutex_unlock(&mutex);
+        return;
+    }
     // 渲染
     // 设置窗口属性
     ANativeWindow_setBuffersGeometry(window, w, h, WINDOW_FORMAT_RGBA_8888);
@@ -141,6 +147,7 @@ void renderFrame(uint8_t *data, int lineSize, int w, int h) {
     if (ANativeWindow_lock(window, &windowBuffer, nullptr)) {
         ANativeWindow_release(window);
         window = nullptr;
+        pthread_mutex_unlock(&mutex);
         return;
     }
     // 缓冲区  window_data[0] =255;
@@ -151,6 +158,7 @@ void renderFrame(uint8_t *data, int lineSize, int w, int h) {
         memcpy(window_data + i * window_line_size, src_data + i * lineSize, window_line_size);
     }
     ANativeWindow_unlockAndPost(window);
+    pthread_mutex_unlock(&mutex);
 }
 
 extern "C"
@@ -179,5 +187,27 @@ JNIEXPORT void JNICALL
 Java_com_zj26_ffmpegplay_PlayerManager_native_1start(JNIEnv *env, jobject thiz) {
     if (nativeFFmpeg) {
         nativeFFmpeg->start();
+    }
+}
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_zj26_ffmpegplay_PlayerManager_native_1getDuration(JNIEnv *env, jobject thiz) {
+    if (nativeFFmpeg) {
+        return nativeFFmpeg->getDuration();
+    }
+    return 0;
+}
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_zj26_ffmpegplay_PlayerManager_native_1seek(JNIEnv *env, jobject thiz, jint progress) {
+    if (nativeFFmpeg) {
+        nativeFFmpeg->seek(progress);
+    }
+}
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_zj26_ffmpegplay_PlayerManager_native_1stop(JNIEnv *env, jobject thiz) {
+    if (nativeFFmpeg) {
+        nativeFFmpeg->stop();
     }
 }
